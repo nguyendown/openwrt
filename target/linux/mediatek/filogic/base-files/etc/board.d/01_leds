@@ -254,6 +254,10 @@ routerich,be7200)
 	ucidef_set_led_netdev "wan-off" "wan-off" "red:wan" "wan" "link"
 	ucidef_set_led_netdev "wlan5g" "wlan-5ghz" "blue:wlan-5ghz" "phy0.1-ap0" "link tx rx"
 	;;
+sdmc,nr3053)
+	ucidef_set_led_default "wan-green" "WAN" "green:status" "0"
+	ucidef_set_led_default "wan-red" "WAN offline" "red:status" "0"
+	;;
 smartrg,sdg-8612)
 	ucidef_set_led_netdev "lan4" "LAN4" "mdio-bus:05:amber:lan" "lan4" "link_10 link_100"
 	ucidef_set_led_netdev "lan4" "LAN4" "mdio-bus:05:green:lan-0" "lan4" "link_1000"

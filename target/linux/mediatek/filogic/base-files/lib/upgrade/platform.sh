@@ -155,6 +155,7 @@ platform_do_upgrade() {
 	qihoo,360t7-ubi|\
 	routerich,ax3000-ubootmod|\
 	routerich,be7200|\
+	sdmc,nr3053|\
 	snr,snr-cpe-ax2|\
 	teralink,tl3020-256mb|\
 	tplink,tl-xdr4288|\
@@ -392,6 +393,7 @@ platform_check_image() {
 	qihoo,360t7|\
 	qihoo,360t7-ubi|\
 	routerich,ax3000-ubootmod|\
+	sdmc,nr3053|\
 	teralink,tl3020-256mb|\
 	tplink,tl-xdr4288|\
 	tplink,tl-xdr6086|\
