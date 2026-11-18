@@ -1,0 +1,154 @@
+name: Build SDMC NR3053
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag (e.g. nr3053-v25.12.6-r1)."
+        required: false
+        type: string
+        default: ""
+  push:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-sdmc-nr3053-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build firmware
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/openwrt/tools:openwrt-25.12
+      options: --privileged --pid=host
+
+    timeout-minutes: 360
+
+    steps:
+      - name: Free up disk space on the runner
+        # Enter the host namespace to drop preinstalled toolchains (~25 GB).
+        shell: sh -c "nsenter -t 1 -a sh -e /home/runner/$(echo {0} | sed s#^/__w#work#)"
+        env:
+          DELETE_DIR: /usr/local/lib/android /usr/local/.ghcup /usr/share/dotnet /usr/share/swift
+        run: |
+          mkdir -p /empty
+          SUDO=""
+          command -v sudo >/dev/null && SUDO=sudo
+          for dir in $DELETE_DIR; do
+            [ -d "$dir" ] || continue
+            $SUDO rsync -a --delete /empty/ "$dir" || true
+          done
+
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          path: openwrt
+
+      - name: Restore ccache
+        uses: actions/cache@v6
+        with:
+          path: openwrt/.ccache
+          key: ccache-${{ runner.os }}-sdmc-nr3053-${{ hashFiles('openwrt/configs/sdmc_nr3053.config') }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-sdmc-nr3053-${{ hashFiles('openwrt/configs/sdmc_nr3053.config') }}-
+
+      # Build as unprivileged buildbot (container runs as root for nsenter).
+      - name: Fix workspace ownership
+        run: chown -R buildbot:buildbot openwrt
+
+      - name: Prepare prebuilt host tools
+        shell: su buildbot -c "sh -e {0}"
+        working-directory: openwrt
+        run: |
+          mkdir -p staging_dir build_dir
+          ln -sfn /prebuilt_tools/staging_dir/host staging_dir/host
+          ln -sfn /prebuilt_tools/build_dir/host build_dir/host
+          ./scripts/ext-tools.sh --refresh
+
+      - name: Update and install feeds
+        shell: su buildbot -c "sh -e {0}"
+        working-directory: openwrt
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Apply device configuration
+        shell: su buildbot -c "sh -e {0}"
+        working-directory: openwrt
+        run: |
+          cp configs/sdmc_nr3053.config .config
+          make defconfig
+          grep -q '^CONFIG_TARGET_mediatek_filogic_DEVICE_sdmc_nr3053=y' .config
+          echo "--- effective configuration ---"
+          ./scripts/diffconfig.sh
+
+      - name: Download package sources
+        shell: su buildbot -c "sh -e {0}"
+        working-directory: openwrt
+        run: make download -j$(nproc) || make download -j1 V=s
+
+      - name: Build firmware
+        working-directory: openwrt
+        shell: su buildbot -c "bash -e {0}"
+        run: |
+          set -o pipefail
+          make -j$(nproc) BUILD_LOG=1 2>&1 | tee build.log || {
+            echo "Parallel build failed; retrying with -j1 V=s" | tee -a build.log
+            make -j1 V=s 2>&1 | tee -a build.log
+          }
+
+      - name: Show generated images
+        working-directory: openwrt
+        run: ls -lh bin/targets/mediatek/filogic/
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v7
+        with:
+          name: sdmc-nr3053-firmware
+          path: |
+            openwrt/bin/targets/mediatek/filogic/*sdmc*
+            openwrt/bin/targets/mediatek/filogic/*.manifest
+            openwrt/bin/targets/mediatek/filogic/*.buildinfo
+            openwrt/bin/targets/mediatek/filogic/profiles.json
+            openwrt/bin/targets/mediatek/filogic/sha256sums
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Package release archive
+        if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd openwrt/bin/targets/mediatek/filogic
+          mkdir -p "$GITHUB_WORKSPACE/release"
+          tar czf "$GITHUB_WORKSPACE/release/sdmc-nr3053-firmware.tar.gz" *sdmc* sha256sums
+
+      - name: Create GitHub release
+        if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          body: |
+            The attached archive contains firmware images and `sha256sums`.
+          fail_on_unmatched_files: true
+          files: release/*.tar.gz
+
+      - name: Upload build logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sdmc-nr3053-logs
+          path: |
+            openwrt/build.log
+            openwrt/logs/
+          if-no-files-found: warn
+          retention-days: 7
