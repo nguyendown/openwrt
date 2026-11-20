@@ -244,6 +244,16 @@ define Trusted-Firmware-A/mt7981-spim-nand-ddr3
   DDR_TYPE:=ddr3
 endef
 
+define Trusted-Firmware-A/mt7981-sdmc-nr3053-ddr3
+  NAME:=SDMC NR3053 (SPI-NAND via SPIM, DDR3)
+  BOOT_DEVICE:=spim-nand
+  BUILD_SUBTARGET:=filogic
+  PLAT:=mt7981
+  DDR_TYPE:=ddr3
+  FIP_OFFSET:=0x400000
+  FIP_SIZE:=0x200000
+endef
+
 define Trusted-Firmware-A/mt7981-spim-nand-ddr3-1866
   NAME:=MediaTek MT7981 (SPI-NAND via SPIM, DDR3 1866 MT/s)
   BOOT_DEVICE:=spim-nand
@@ -696,6 +706,7 @@ TFA_TARGETS:= \
 	mt7981-sdmmc-ddr3 \
 	mt7981-snand-ddr3 \
 	mt7981-spim-nand-ddr3 \
+	mt7981-sdmc-nr3053-ddr3 \
 	mt7981-spim-nand-ddr3-1866 \
 	mt7981-spim-nand-ubi-ddr3-1866 \
 	mt7981-spim-nand-ubi-ddr4 \

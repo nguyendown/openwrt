@@ -21,6 +21,10 @@ define Build/mt7981-bl2
 	cat $(STAGING_DIR_IMAGE)/mt7981-$1-bl2.img >> $@
 endef
 
+define Build/mt7981-ram-bl2
+	cat $(BIN_DIR)/mt7981-ram-$1-bl2.bin >> $@
+endef
+
 define Build/mt7981-bl31-uboot
 	cat $(STAGING_DIR_IMAGE)/mt7981_$1-u-boot.fip >> $@
 endef
@@ -3096,9 +3100,10 @@ define Device/sdmc_nr3053
   IMAGE/sysupgrade.itb := append-kernel | \
 	fit gzip $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb external-static-with-rootfs | \
 	append-metadata
-  ARTIFACTS := preloader.bin bl31-uboot.fip
-  ARTIFACT/preloader.bin := mt7981-bl2 spim-nand-ddr3
+  ARTIFACTS := preloader.bin bl31-uboot.fip ram-preloader.bin
+  ARTIFACT/preloader.bin := mt7981-bl2 sdmc-nr3053-ddr3
   ARTIFACT/bl31-uboot.fip := mt7981-bl31-uboot sdmc_nr3053
+  ARTIFACT/ram-preloader.bin := mt7981-ram-bl2 ddr3
   DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware
 endef
 TARGET_DEVICES += sdmc_nr3053
