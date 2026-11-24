@@ -166,6 +166,32 @@ writes.
   boots and removed by menus `5`/`6`.
 - `ubootenv`/`ubootenv2` — redundant U-Boot environment.
 
+## MAC addresses
+
+**WiFi** addresses are read from the EEPROM at `Factory+0x0`: `0x4` for 2.4 GHz
+(`e2p[0x04]`) and `0xa` for 5 GHz (`e2p[0x0a]`).
+
+**Ethernet** addresses are not in `Factory` — all candidate slots are zero.
+The stock firmware reads them from `/etc/config/network` in the writable
+overlay and has no logic to recompute them from `Factory`; they were
+provisioned during manufacturing.
+
+OpenWrt does not inherit the stock overlay; it derives the Ethernet MACs from
+`Factory+0x4` by mirroring the observed provisioning pattern:
+
+| Interface | Value | Source |
+|---|---|---|
+| `wan` / sticker | `Factory+0x4 − 2` | Derived; also the DT `label-mac-device` |
+| `lan` / `br-lan` | `Factory+0x4 − 1` | Derived; MT7531 ports inherit from `gmac0` |
+| 2.4 GHz (`ra0`) | `Factory+0x4` | WiFi EEPROM (`e2p[0x04]`) |
+| 5 GHz (`rax0`) | `Factory+0xa` | WiFi EEPROM (`e2p[0x0a]`) |
+
+This reproduces the stock values on units provisioned with that pattern, but
+it is a convention, not a value read from flash.
+
+U-Boot's `ethaddr` is read from `Factory+0x4` (the 2.4 GHz MAC); it is unique,
+but it is not the sticker MAC.
+
 ## Troubleshooting
 
 - **Serial permission denied:** re-run `setfacl` after replugging the adapter,
