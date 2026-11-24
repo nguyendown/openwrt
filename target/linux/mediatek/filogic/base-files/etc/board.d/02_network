@@ -343,6 +343,12 @@ mediatek_setup_macs()
 		wan_mac=$label_mac
 		lan_mac=$(macaddr_add "$label_mac" 1)
 		;;
+	sdmc,nr3053)
+		base_mac=$(mtd_get_mac_binary Factory 0x4)
+		label_mac=$(macaddr_add "$base_mac" -2)
+		wan_mac=$label_mac
+		lan_mac=$(macaddr_add "$label_mac" 1)
+		;;
 	tplink,eap683-lr|\
 	tplink,f65-v1)
 		label_mac=$(get_mac_binary "/tmp/factory/default-mac" 0)
