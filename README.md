@@ -192,6 +192,18 @@ it is a convention, not a value read from flash.
 U-Boot's `ethaddr` is read from `Factory+0x4` (the 2.4 GHz MAC); it is unique,
 but it is not the sticker MAC.
 
+## Status LEDs
+
+| LED | WAN link | State |
+|---|---|---|
+| `green:status` | up | solid on |
+| `red:status` | down | solid on |
+
+Stock firmware requires internet reachability before reporting the WAN as
+connected, and has a separate WPS/onboarding indication. This OpenWrt port does
+not replicate that behavior: a WAN link with no DHCP lease or internet still
+shows green.
+
 ## Troubleshooting
 
 - **Serial permission denied:** re-run `setfacl` after replugging the adapter,
