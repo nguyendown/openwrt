@@ -63,7 +63,7 @@
 			label = "red:status";
 			color = <LED_COLOR_ID_RED>;
 			function = LED_FUNCTION_STATUS;
-			gpios = <&pio 6 GPIO_ACTIVE_LOW>;
+			gpios = <&pio 6 GPIO_ACTIVE_HIGH>;
 		};
 	};
 };
